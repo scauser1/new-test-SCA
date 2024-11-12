@@ -1,32 +1,72 @@
-Fill the data below
-Traceback (most recent call last):
+import os
+import pandas as pd
+from openpyxl import load_workbook
 
-A
+# Define the paths to your files and folders
+analysed_data_folder = "path_to/Analysed Data"
+raw_data_folder = "path_to/Raw Data"
+vtm_file_path = os.path.join(analysed_data_folder, "VTM-SCA-Licenses.xlsx")
+maven_file_path = [f for f in os.listdir(raw_data_folder) if f.startswith("Maven_") and f.endswith("License_Export.csv")]
+spdx_file_path = "path_to/spdx-license.xlsx"
 
-File "c:\Users\c-RehanS\OneDrive crisil.com\Documents\Rehan\Automation\datadump.py", line 10, in <module>
+# Check if Maven file exists
+if not maven_file_path:
+    raise FileNotFoundError("Maven_*_License_Export.csv file not found in Raw Data folder.")
+maven_file_path = os.path.join(raw_data_folder, maven_file_path[0])
 
-template_df = pd.read_excel(output_file)
+# Load the data from the files
+vtm_df = pd.read_excel(vtm_file_path)
+maven_df = pd.read_csv(maven_file_path)
+spdx_df = pd.read_excel(spdx_file_path)
 
-File "C:\Users\c-RehanS\AppData\Roaming\Python\Python312\site-packages\pandas\io\excel\_base.py", line 495, in read_excel
+# Step 1: Fill "Vulnerable Component" and "Impacted component Version"
+vtm_df["Vulnerable Component"] = maven_df["Component Name"]
+vtm_df["Impacted component Version"] = maven_df["Licenses"]
 
-io ExcelFile(
+# Step 2: Use Excel formulas to fill in the rest of the columns
+workbook = load_workbook(vtm_file_path)
+sheet = workbook.active
 
-File "C:\Users\c-RehanS\AppData\Roaming\Python\Python312\site-packages\pandas\io\excel\_base.py", line 1550, in _init_ ext inspect_excel_format(
+# Define the column positions
+columns_to_fill = {
+    "Component Description": "Description",
+    "Recommendation": "isAllowed",
+    "Security": "Severity",
+    "Risk Reason": "Risk associated with use of library"
+}
 
-B
+# Create formulas to fetch data from the spdx-license file
+for index, row in vtm_df.iterrows():
+    license_names = row["Impacted component Version"].split(",")
+    severity_values = []
+    recommendation = "Allowed"
+    description = ""
+    risk_reason = ""
+    
+    for license_name in license_names:
+        # Use a formula to fetch data from spdx-license.xlsx
+        match_formula = f"VLOOKUP(\"{license_name}\", 'spdx-license.xlsx'!A:E, {{col}}, FALSE)"
+        description = match_formula.replace("{col}", "3")  # Fetch from the 3rd column
+        is_allowed = match_formula.replace("{col}", "4")  # Fetch from the 4th column
+        severity = match_formula.replace("{col}", "5")  # Fetch from the 5th column
+        risk_reason = match_formula.replace("{col}", "6")  # Fetch from the 6th column
+        
+        # Check if any license is disallowed
+        if "Disallowed" in is_allowed:
+            recommendation = "Disallowed"
+        
+        # Collect severity values
+        severity_values.append(severity)
 
-0404 BLACKBOX Chat Add Logs Improve Code Share Code Link Search Error
+    # Fill the Excel sheet using the formulas
+    sheet[f"C{index + 2}"] = description
+    sheet[f"D{index + 2}"] = recommendation
+    sheet[f"E{index + 2}"] = max(severity_values)  # Choose the highest severity
+    sheet[f"F{index + 2}"] = "N/A"  # Tester Comments
+    sheet[f"G{index + 2}"] = risk_reason
+    sheet[f"H{index + 2}"] = "N/A"  # Component Physical Path
+    sheet[f"I{index + 2}"] = "Application Team"  # Remediation Responsibility
 
-CRISILMA
-
-A
-
-File "C:\Users\c-RehanS\AppData\Roaming\Python\Python312\site-packages\pandas\io\excel\_base.py", line 1402, in inspect_excel_format with get_handle(
-
-File "C:\Users\c-RehanS\AppData\Roaming\Python\Python312\site-packages\pandas\io\common.py", line 882, in get_handle
-
-handle open (handle, ioargs.mode)
-
-PermissionError: [Errno 13] Permission denied: 'c:\\Users\\c-RehanS\\OneDrive crisil.com\\Documents\\VTM Sample Template.xlsx'
-
-PS C:\Users\c-RehanS\OneDrive crisil.com\Documents\Rehan\Automation>
+# Save the updated workbook
+workbook.save(vtm_file_path)
+print("Data successfully populated in VTM-SCA-Licenses.xlsx.")
