@@ -1,1 +1,32 @@
 Fill the data below
+Traceback (most recent call last):
+
+A
+
+File "c:\Users\c-RehanS\OneDrive crisil.com\Documents\Rehan\Automation\datadump.py", line 10, in <module>
+
+template_df = pd.read_excel(output_file)
+
+File "C:\Users\c-RehanS\AppData\Roaming\Python\Python312\site-packages\pandas\io\excel\_base.py", line 495, in read_excel
+
+io ExcelFile(
+
+File "C:\Users\c-RehanS\AppData\Roaming\Python\Python312\site-packages\pandas\io\excel\_base.py", line 1550, in _init_ ext inspect_excel_format(
+
+B
+
+0404 BLACKBOX Chat Add Logs Improve Code Share Code Link Search Error
+
+CRISILMA
+
+A
+
+File "C:\Users\c-RehanS\AppData\Roaming\Python\Python312\site-packages\pandas\io\excel\_base.py", line 1402, in inspect_excel_format with get_handle(
+
+File "C:\Users\c-RehanS\AppData\Roaming\Python\Python312\site-packages\pandas\io\common.py", line 882, in get_handle
+
+handle open (handle, ioargs.mode)
+
+PermissionError: [Errno 13] Permission denied: 'c:\\Users\\c-RehanS\\OneDrive crisil.com\\Documents\\VTM Sample Template.xlsx'
+
+PS C:\Users\c-RehanS\OneDrive crisil.com\Documents\Rehan\Automation>
