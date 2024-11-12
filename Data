@@ -46,24 +46,24 @@ for index, row in vtm_df.iterrows():
     for license_name in license_names:
         # Use a formula to fetch data from spdx-license.xlsx
         match_formula = f"VLOOKUP(\"{license_name}\", 'spdx-license.xlsx'!A:E, {{col}}, FALSE)"
-        description = match_formula.replace("{col}", "3")  # Fetch from the 3rd column
-        is_allowed = match_formula.replace("{col}", "4")  # Fetch from the 4th column
-        severity = match_formula.replace("{col}", "5")  # Fetch from the 5th column
-        risk_reason = match_formula.replace("{col}", "6")  # Fetch from the 6th column
+        description_formula = match_formula.replace("{col}", "3")  # Fetch from the 3rd column
+        is_allowed_formula = match_formula.replace("{col}", "4")  # Fetch from the 4th column
+        severity_formula = match_formula.replace("{col}", "5")  # Fetch from the 5th column
+        risk_reason_formula = match_formula.replace("{col}", "6")  # Fetch from the 6th column
         
         # Check if any license is disallowed
-        if "Disallowed" in is_allowed:
+        if "Disallowed" in is_allowed_formula:
             recommendation = "Disallowed"
         
         # Collect severity values
-        severity_values.append(severity)
+        severity_values.append(severity_formula)
 
     # Fill the Excel sheet using the formulas
-    sheet[f"C{index + 2}"] = description
-    sheet[f"D{index + 2}"] = recommendation
+    sheet[f"C{index + 2}"] = description_formula
+    sheet[f"D{index + 2}"] = recommendation  # Corrected: Use "Allowed" or "Disallowed" based on check
     sheet[f"E{index + 2}"] = max(severity_values)  # Choose the highest severity
     sheet[f"F{index + 2}"] = "N/A"  # Tester Comments
-    sheet[f"G{index + 2}"] = risk_reason
+    sheet[f"G{index + 2}"] = risk_reason_formula
     sheet[f"H{index + 2}"] = "N/A"  # Component Physical Path
     sheet[f"I{index + 2}"] = "Application Team"  # Remediation Responsibility
 
