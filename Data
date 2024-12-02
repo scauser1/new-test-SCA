@@ -70,3 +70,59 @@ for index, row in vtm_df.iterrows():
 # Save the updated workbook
 workbook.save(vtm_file_path)
 print("Data successfully populated in VTM-SCA-Licenses.xlsx.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Here's a list of Windows 10 updates for 2021:
+
+- KB5003791: Update to Windows 10, version 21H2 ¹
+- KB5005565: Servicing stack update for Windows 10, version 2004 ¹
+- KB5046613: Windows 10, version 21H2 update ²
+- KB5044273: Windows 10, version 21H2 update ²
+- KB5043064: Windows 10, version 21H2 update ²
+- KB5041580: Windows 10, version 21H2 update ²
+- KB5040427: Windows 10, version 21H2 update ²
+- KB5039211: Windows 10, version 21H2 update ²
+- KB5037768: Windows 10, version 21H2 update ²
+- KB5036892: Windows 10, version 21H2 update ²
+- KB5035845: Windows 10, version 21H2 update ²
+- KB5034763: Windows 10, version 21H2 update ²
+- KB5034122: Windows 10, version 21H2 update ²
+- KB5033372: Windows 10, version 21H2 update ²
+- KB5032189: Windows 10, version 21H2 update ²
+- KB5031356: Windows 10, version 21H2 update ²
+- KB5030211: Windows 10, version 21H2 update ²
+KB5020030: Released on November 15, 2022 (OS Builds 19042.2311, 19043.2311, 19044.2311, and 19045.2311) ¹
+- KB5019959: Released on November 8, 2022 (OS Builds 19042.2251, 19043.2251, 19044.2251, and 19045.2251) ¹
+- KB5020953: Released on October 28, 2022 (OS Builds 19042.2194, 19043.2194, 19044.2194, and 19045.2194) ¹
+- KB5021233: Released on December 13, 2022 (OS Builds 19042.2364, 19043.2364, 19044.2364, and 19045.2364) ¹
+KB5019274: Released on November 8, 2023
+- KB5020386: Released on October 10, 2023
+- KB5017305: Released on September 12, 2023
+- KB5021242: Released on August 8, 2023
+- KB5016139: Released on July 11, 2023
+- KB5023791: Released on June 13, 2023
+- KB5014024: Released on May 9, 2023
+- KB5012592: Released on April 11, 2023
+- KB5023008: Released on March 14, 2023
+- KB5011493: Released on February 14, 2023
+- KB5019274: Released on January 10, 2023
+ KB5046714: Released on November 21, 2024, this update resolves an issue where users might be unable to update or uninstall packaged apps on Windows 10 ¹.
+- KB5045594: Released on October 22, 2024, this update resolves an issue where Azure Virtual Desktop users might experience extended black screen during logon and SSO failures ¹.
+- KB5046613: Released on November 12, 2024, this update resolves an issue where apps that set UIAccess=true might fail to start for non-admin users ¹.
+- KB5041580: Released on August 13, 2024, this update mitigates an issue where the August 2024 security update might impact Linux boot in dual-boot setup devices ¹.
+- KB5040525: Released on July 23, 2024, this update resolves an issue where Azure Virtual Desktop users might experience black screen during login ¹.
+- KB5043131: Released on September 24, 2024, this update resolves an issue where apps that set UIAccess=true might fail to start for non-admin users ¹.
+- KB5044273: Released on October 8, 2024, this update resolves an issue where Azure Virtual Desktop users might experience extended black screen during logon and SSO failures ¹.
+- KB5048864: 
