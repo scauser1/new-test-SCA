@@ -1,128 +1,92 @@
-import os
 import pandas as pd
-from openpyxl import load_workbook
+import requests
+from bs4 import BeautifulSoup
+import time
+import urllib3
+urllib3.disable_warnings()
 
-# Define the paths to your files and folders
-analysed_data_folder = "path_to/Analysed Data"
-raw_data_folder = "path_to/Raw Data"
-vtm_file_path = os.path.join(analysed_data_folder, "VTM-SCA-Licenses.xlsx")
-maven_file_path = [f for f in os.listdir(raw_data_folder) if f.startswith("Maven_") and f.endswith("License_Export.csv")]
-spdx_file_path = "path_to/spdx-license.xlsx"
+# Load the Excel file (make sure to provide the correct path to your Excel file)
+file_path = 'components.xlsx'
 
-# Check if Maven file exists
-if not maven_file_path:
-    raise FileNotFoundError("Maven_*_License_Export.csv file not found in Raw Data folder.")
-maven_file_path = os.path.join(raw_data_folder, maven_file_path[0])
+# Read the Excel file into a DataFrame
+df = pd.read_excel(file_path, engine='openpyxl')
 
-# Load the data from the files
-vtm_df = pd.read_excel(vtm_file_path)
-maven_df = pd.read_csv(maven_file_path)
-spdx_df = pd.read_excel(spdx_file_path)
+# Ensure 'Remarks' column is of type string
+if 'Remarks' not in df.columns:
+    df['Remarks'] = ""  # Create the column if it doesn't exist
 
-# Step 1: Fill "Vulnerable Component" and "Impacted component Version"
-vtm_df["Vulnerable Component"] = maven_df["Component Name"]
-vtm_df["Impacted component Version"] = maven_df["Licenses"]
+df['Remarks'] = df['Remarks'].astype(str)  # Explicitly convert to string
 
-# Step 2: Use Excel formulas to fill in the rest of the columns
-workbook = load_workbook(vtm_file_path)
-sheet = workbook.active
+# Set the API key and base URL
+apikey = 'c7d78be83b58b107ab23f9c0aa5ec2fecb09302f'
+base_api_url = 'https://api.zenrows.com/v1/'
 
-# Define the column positions
-columns_to_fill = {
-    "Component Description": "Description",
-    "Recommendation": "isAllowed",
-    "Security": "Severity",
-    "Risk Reason": "Risk associated with use of library"
-}
+# Function to get the artifact message from ZenRows API
+def get_artifact_message(url):
+    try:
+        params = {
+            'url': url,
+            'apikey': apikey,
+        }
 
-# Create formulas to fetch data from the spdx-license file
-for index, row in vtm_df.iterrows():
-    license_names = row["Impacted component Version"].split(",")
-    severity_values = []
-    recommendation = "Allowed"
-    description = ""
-    risk_reason = ""
+        response = requests.get(base_api_url, params=params, timeout=10, verify=False)  # Added timeout
+
+        if response.status_code == 200:
+            # Parse the HTML content with BeautifulSoup
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # Find the div containing the message about the artifact being moved
+            div_tag = soup.find('div', style=lambda value: value and 'background-color: #fff8f8' in value)
+
+            if div_tag:
+                # Extract the main message
+                main_message = div_tag.find('b').text.strip()
+                table_tag = div_tag.find('table', class_='grid')
+                moved_artifact = table_tag.find('td').text.strip()
+                return f'{main_message} {moved_artifact}'
+            else:
+                return "Could not find the moved artifact information."
+        else:
+            return f'Error {response.status_code}: {response.text}'
+
+    except requests.exceptions.RequestException as e:
+        return f'Connection error: {str(e)}'
+
+# Retry logic parameters
+max_retries = 3  # Maximum number of retries
+retry_delay = 5  # Delay in seconds before retrying
+
+# Iterate through each row and process the "Components" field
+for index, row in df.iterrows():
+    # Create the full URL by concatenating the base part with the value from 'Components' column
+    component_url = 'https://mvnrepository.com/artifact/' + row['Components']
     
-    for license_name in license_names:
-        # Use a formula to fetch data from spdx-license.xlsx
-        match_formula = f"VLOOKUP(\"{license_name}\", 'spdx-license.xlsx'!A:E, {{col}}, FALSE)"
-        description_formula = match_formula.replace("{col}", "3")  # Fetch from the 3rd column
-        is_allowed_formula = match_formula.replace("{col}", "4")  # Fetch from the 4th column
-        severity_formula = match_formula.replace("{col}", "5")  # Fetch from the 5th column
-        risk_reason_formula = match_formula.replace("{col}", "6")  # Fetch from the 6th column
-        
-        # Check if any license is disallowed
-        if "Disallowed" in is_allowed_formula:
-            recommendation = "Disallowed"
-        
-        # Collect severity values
-        severity_values.append(severity_formula)
+    attempts = 0
+    success = False
+    
+    while attempts < max_retries and not success:
+        attempts += 1
+        time.sleep(0.5)  # Small delay between requests
 
-    # Fill the Excel sheet using the formulas
-    sheet[f"C{index + 2}"] = description_formula
-    sheet[f"D{index + 2}"] = recommendation  # Corrected: Use "Allowed" or "Disallowed" based on check
-    sheet[f"E{index + 2}"] = max(severity_values)  # Choose the highest severity
-    sheet[f"F{index + 2}"] = "N/A"  # Tester Comments
-    sheet[f"G{index + 2}"] = risk_reason_formula
-    sheet[f"H{index + 2}"] = "N/A"  # Component Physical Path
-    sheet[f"I{index + 2}"] = "Application Team"  # Remediation Responsibility
+        # Get the artifact message using the API
+        artifact_message = get_artifact_message(component_url)
 
-# Save the updated workbook
-workbook.save(vtm_file_path)
-print("Data successfully populated in VTM-SCA-Licenses.xlsx.")
+        # Check for the specific error code
+        if 'Error 422' in artifact_message and '"code":"RESP001"' in artifact_message:
+            print(f"Attempt {attempts}: {artifact_message}. Retrying...")
+            time.sleep(retry_delay)  # Wait before retrying
+        else:
+            # Update the 'Remarks' field (or 'Tester Comments' depending on your Excel file)
+            df.at[index, 'Remarks'] = artifact_message  # Update this to 'Tester Comments' if needed
+            success = True  # Set success to True to exit the retry loop
 
+    # Print the row number, component URL, and artifact message
+    print(f"Row {index + 1}: Component URL: {component_url}")
+    print(f"Output: {artifact_message}\n")
+    
+    time.sleep(1.5)  # Additional delay to prevent rate limiting
 
+# Save the updated DataFrame back to the Excel file
+df.to_excel(file_path, index=False, engine='openpyxl')
 
-
-
-
-
-
-
-
-
-
-
-
-Here's a list of Windows 10 updates for 2021:
-
-- KB5003791: Update to Windows 10, version 21H2 ¹
-- KB5005565: Servicing stack update for Windows 10, version 2004 ¹
-- KB5046613: Windows 10, version 21H2 update ²
-- KB5044273: Windows 10, version 21H2 update ²
-- KB5043064: Windows 10, version 21H2 update ²
-- KB5041580: Windows 10, version 21H2 update ²
-- KB5040427: Windows 10, version 21H2 update ²
-- KB5039211: Windows 10, version 21H2 update ²
-- KB5037768: Windows 10, version 21H2 update ²
-- KB5036892: Windows 10, version 21H2 update ²
-- KB5035845: Windows 10, version 21H2 update ²
-- KB5034763: Windows 10, version 21H2 update ²
-- KB5034122: Windows 10, version 21H2 update ²
-- KB5033372: Windows 10, version 21H2 update ²
-- KB5032189: Windows 10, version 21H2 update ²
-- KB5031356: Windows 10, version 21H2 update ²
-- KB5030211: Windows 10, version 21H2 update ²
-KB5020030: Released on November 15, 2022 (OS Builds 19042.2311, 19043.2311, 19044.2311, and 19045.2311) ¹
-- KB5019959: Released on November 8, 2022 (OS Builds 19042.2251, 19043.2251, 19044.2251, and 19045.2251) ¹
-- KB5020953: Released on October 28, 2022 (OS Builds 19042.2194, 19043.2194, 19044.2194, and 19045.2194) ¹
-- KB5021233: Released on December 13, 2022 (OS Builds 19042.2364, 19043.2364, 19044.2364, and 19045.2364) ¹
-KB5019274: Released on November 8, 2023
-- KB5020386: Released on October 10, 2023
-- KB5017305: Released on September 12, 2023
-- KB5021242: Released on August 8, 2023
-- KB5016139: Released on July 11, 2023
-- KB5023791: Released on June 13, 2023
-- KB5014024: Released on May 9, 2023
-- KB5012592: Released on April 11, 2023
-- KB5023008: Released on March 14, 2023
-- KB5011493: Released on February 14, 2023
-- KB5019274: Released on January 10, 2023
- KB5046714: Released on November 21, 2024, this update resolves an issue where users might be unable to update or uninstall packaged apps on Windows 10 ¹.
-- KB5045594: Released on October 22, 2024, this update resolves an issue where Azure Virtual Desktop users might experience extended black screen during logon and SSO failures ¹.
-- KB5046613: Released on November 12, 2024, this update resolves an issue where apps that set UIAccess=true might fail to start for non-admin users ¹.
-- KB5041580: Released on August 13, 2024, this update mitigates an issue where the August 2024 security update might impact Linux boot in dual-boot setup devices ¹.
-- KB5040525: Released on July 23, 2024, this update resolves an issue where Azure Virtual Desktop users might experience black screen during login ¹.
-- KB5043131: Released on September 24, 2024, this update resolves an issue where apps that set UIAccess=true might fail to start for non-admin users ¹.
-- KB5044273: Released on October 8, 2024, this update resolves an issue where Azure Virtual Desktop users might experience extended black screen during logon and SSO failures ¹.
-- KB5048864: 
+print("Process completed. The 'Remarks' (or 'Tester Comments') field has been updated.")
