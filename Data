@@ -1,12 +1,18 @@
 import pandas as pd
 import requests
+import os
 from bs4 import BeautifulSoup
 import time
 import urllib3
 urllib3.disable_warnings()
 
 # Load the Excel file (make sure to provide the correct path to your Excel file)
-file_path = 'components.xlsx'
+file_path = r'C:\Users\sayye\OneDrive\Documents\Projets\work\components.xlsx'
+
+# Check if the file exists
+if not os.path.exists(file_path):
+    print(f"File not found: {file_path}")
+    exit()
 
 # Read the Excel file into a DataFrame
 df = pd.read_excel(file_path, engine='openpyxl')
@@ -18,7 +24,7 @@ if 'Remarks' not in df.columns:
 df['Remarks'] = df['Remarks'].astype(str)  # Explicitly convert to string
 
 # Set the API key and base URL
-apikey = 'c7d78be83b58b107ab23f9c0aa5ec2fecb09302f'
+apikey = '7780b6c891b6855c85738c8690740b7cb4c773a4'
 base_api_url = 'https://api.zenrows.com/v1/'
 
 # Function to get the artifact message from ZenRows API
